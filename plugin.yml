@@ -1,0 +1,10 @@
+name: SpawnHumanAPI
+main: spawnhuman.SpawnHuman
+version: 0.1
+api-version: 1.15
+website: https://manta.games/
+author: orange451
+softdepend: [Citizens]
+commands:
+ npcamt:
+ npctest:

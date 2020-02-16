@@ -16,12 +16,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import highwayman.BanditSpawner;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.npc.NPCDataStore;
 import net.citizensnpcs.api.npc.NPCRegistry;
 import spawnhuman.ai.HostilePlayerNPC;
-import testing.BanditSpawner;
 
 public class SpawnHuman extends JavaPlugin {
 	public static JavaPlugin plugin;

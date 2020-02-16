@@ -17,6 +17,7 @@ public class HostilePlayerNPC extends NormalPlayerNPC {
 	
 	public HostilePlayerNPC(String name, Location location) {
 		super(name, location);
+		this.hostileIfAttacked = true;
 	}
 
 	@Override

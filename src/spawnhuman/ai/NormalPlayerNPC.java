@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -33,6 +34,8 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 	protected static final int TARGET_MAX_FAIL = 5;
 	protected static final int PATHFIND_TIMEOUT = 256;
 	protected static final double MINIMUM_TARGET_DISTANCE = 1.5;
+	
+	protected boolean hostileIfAttacked = true;
 	
 	public NormalPlayerNPC(String name, Location location) {
 		super(name, location);
@@ -211,9 +214,8 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 					}
 					
 					// Break out of loop, if we still have a block!
-					if ( walkToBlock != null ) {
+					if ( walkToBlock != null )
 						break;
-					}
 					
 					tries++;
 				}
@@ -232,6 +234,9 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 	
 	@Override
 	protected void onDamage(LivingEntity damager, double damage) {
+		if ( !hostileIfAttacked )
+			return;
+		
 		if ( TICKS_SINCE_LAST_ATTACK > 40 || target == null ) {
 			if ( this.canSee(damager.getEyeLocation()) ) {
 				setTarget(damager);
@@ -250,13 +255,20 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 			if ( nearby.get(i) instanceof LivingEntity ) {
 				LivingEntity nearEnt = (LivingEntity) nearby.get(i);
 				
+				// Must be alive
 				if ( nearEnt.isDead() )
 					continue;
 				
+				// Can't be ourself
 				if ( nearEnt.equals(getPlayer()) )
 					continue;
 				
+				// Must be in same world
 				if ( nearEnt.getWorld() != getPlayer().getWorld() )
+					continue;
+				
+				// Ignore players in creative mode
+				if ( nearEnt instanceof Player && ((Player)nearEnt).getGameMode() == GameMode.CREATIVE )
 					continue;
 				
 				ret.add((LivingEntity) nearby.get(i));
