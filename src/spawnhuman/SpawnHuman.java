@@ -16,7 +16,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import highwayman.BanditSpawner;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.npc.NPCDataStore;
@@ -180,8 +179,6 @@ public class SpawnHuman extends JavaPlugin {
 		});
 
 		Bukkit.getPluginManager().registerEvents(new SpawnHumanEventListener(), this);
-		
-		new BanditSpawner();
 	}
 	
 	@Override
