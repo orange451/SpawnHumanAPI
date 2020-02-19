@@ -15,6 +15,8 @@ public class HostilePlayerNPC extends NormalPlayerNPC {
 	public boolean canAttackSameNPCs = true;
 	public boolean canAttackPassiveMobs = true;
 	
+	protected float ENTITY_TARGET_DISTANCE = 24;
+	
 	public HostilePlayerNPC(String name, Location location) {
 		super(name, location);
 		this.hostileIfAttacked = true;
@@ -29,7 +31,7 @@ public class HostilePlayerNPC extends NormalPlayerNPC {
 		
 		// Handle targeting
 		if ( target == null ) {
-			List<LivingEntity> nearby = getNearbyLivingEntities(16);
+			List<LivingEntity> nearby = getNearbyLivingEntities(ENTITY_TARGET_DISTANCE);
 			
 			// New Target
 			if ( nearby.size() > 0 ) {
@@ -59,7 +61,10 @@ public class HostilePlayerNPC extends NormalPlayerNPC {
 						}
 					}
 					
-					target = temp;
+					this.target = temp;
+					this.IDLE_TICKS = 0;
+					this.NO_NEARBY_PLAYER_TICKS = 0;
+					
 					break;
 				}
 			}

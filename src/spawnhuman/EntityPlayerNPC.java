@@ -41,24 +41,18 @@ public class EntityPlayerNPC {
 		this.name = name;
 		this.spawn(location);
 		
-		// Apply armor with delay (sometimes dissappears)
-		Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, new Runnable() {
-			@Override
-			public void run() {
-				if ( !isSpawned() ) {
-					despawn();
-					return;
-				}
-				
-				lastInventory = getPlayer().getInventory();
-				lastLocation = getPlayer().getLocation();
-				getPlayer().setLastDamage(0);
-				getPlayer().setNoDamageTicks(0);
-				citizensNPC.setProtected(false);
-				
-				onSpawn();
-			}
-		}, 5l);
+		if ( !isSpawned() ) {
+			despawn();
+			return;
+		}
+		
+		lastInventory = getPlayer().getInventory();
+		lastLocation = getPlayer().getLocation();
+		getPlayer().setLastDamage(0);
+		getPlayer().setNoDamageTicks(0);
+		citizensNPC.setProtected(false);
+		
+		onSpawn();
 		
 		// Apply skin
 		Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, new Runnable() {
@@ -249,9 +243,8 @@ public class EntityPlayerNPC {
 		Bukkit.getPluginManager().callEvent(e);
 		
 		// Cannot damage, event cancelled.
-		if ( e.isCancelled() || e.getFinalDamage() <= 0 ) {
+		if ( e.isCancelled() || e.getFinalDamage() <= 0 )
 			return false;
-		}
 		
 		// No longer idle
 		this.IDLE_TICKS = 0;
@@ -281,7 +274,7 @@ public class EntityPlayerNPC {
 				@Override
 				public void run() {
 					Player player = getPlayer();
-					if ( player == null )
+					if ( player == null || player.isDead() )
 						return;
 					
 					PlayerAnimation.START_USE_MAINHAND_ITEM.play(player);

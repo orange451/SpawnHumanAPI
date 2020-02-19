@@ -29,6 +29,9 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 	protected int RECHECK_TARGET = 20;
 	protected int TARGET_FAILED = 0;
 	protected int NO_NEARBY_PLAYER_TICKS = 0;
+	
+	protected float WALK_SPEED = 1.25f;
+	protected float RUN_SPEED = 2.0f;
 
 	protected static final int TARGET_TIMEOUT_DISTANCE = 34;
 	protected static final int TARGET_MAX_FAIL = 5;
@@ -40,10 +43,10 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 	public NormalPlayerNPC(String name, Location location) {
 		super(name, location);
 		
-		this.getNavigator().getLocalParameters().useNewPathfinder();
+		this.getNavigator().getLocalParameters().useNewPathfinder(true);
 		this.getNavigator().getLocalParameters().avoidWater(false);
 		this.getNavigator().getLocalParameters().distanceMargin(3.0);
-		this.getNavigator().getLocalParameters().range(256);
+		this.getNavigator().getLocalParameters().range(200);
 		this.getNavigator().getLocalParameters().stuckAction(new StuckAction() {
 			@Override
 			public boolean run(NPC arg0, Navigator arg1) {
@@ -83,7 +86,7 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 		RECHECK_TARGET--;
 		TICKS_SINCE_LAST_ATTACK++;
 
-		this.getNavigator().getLocalParameters().baseSpeed(this.getPlayer().isSprinting()?1.75f:1.25f);
+		this.getNavigator().getLocalParameters().baseSpeed(this.getPlayer().isSprinting()?RUN_SPEED:WALK_SPEED);
 		
 		// Handle targeting
 		if ( target != null ) {
@@ -134,8 +137,8 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 					RETARGET_TIMEOUT = 10;
 					
 					if ( !canSeeTarget || dist >= MINIMUM_TARGET_DISTANCE ) {
-						getNavigator().setTarget(target, true);
 						this.IDLE_TICKS = 0; // Not idle...
+						getNavigator().setTarget(target, true);
 					}
 				}
 				
@@ -169,8 +172,8 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 				// Despawn if no players nearby
 				if ( CAN_NATURAL_DESPAWN ) {
 					Player nearest = getNearestPlayer();
-					int MAXDIST = 150;
-					if ( nearest == null || nearest.getLocation().distanceSquared(this.getLocation()) > MAXDIST*MAXDIST ) {
+					final int MAXDIST = 150;
+					if ( target == null && (nearest == null || nearest.getLocation().distanceSquared(this.getLocation()) > MAXDIST*MAXDIST) ) {
 						NO_NEARBY_PLAYER_TICKS++;
 						
 						// If not near player for at least 5 attempts (about 500 ticks), despawn.
@@ -246,7 +249,7 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 		}
 	}
 	
-	protected List<LivingEntity> getNearbyLivingEntities(int r) {
+	protected List<LivingEntity> getNearbyLivingEntities(float r) {
 		List<LivingEntity> ret = new ArrayList<LivingEntity>();
 		List<Entity> nearby = getPlayer().getNearbyEntities(r, r, r);
 		
