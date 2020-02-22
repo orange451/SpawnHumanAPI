@@ -21,16 +21,17 @@ import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.npc.skin.SkinnableEntity;
 import net.citizensnpcs.util.PlayerAnimation;
 import spawnhuman.etc.DamageUtil;
+import spawnhuman.etc.Ticks;
 
 public class EntityPlayerNPC {
 	private NPC citizensNPC;
 	private Inventory lastInventory;
 	private Location lastLocation;
 	
-	protected int TICKS = 0;
-	protected int IDLE_TICKS = 0;
-	protected int DESPAWN_TIME = 2400;
-	protected int TICKS_SINCE_LAST_ATTACK = 0;
+	protected long TICKS = 0;
+	protected long IDLE_TICKS = 0;
+	protected long DESPAWN_TIME = Ticks.fromSeconds(120);
+	protected long TICKS_SINCE_LAST_ATTACK = 0;
 
 	protected boolean CAN_NATURAL_DESPAWN = true;
 	
@@ -41,32 +42,33 @@ public class EntityPlayerNPC {
 		this.name = name;
 		this.spawn(location);
 		
-		if ( !isSpawned() ) {
-			despawn();
-			return;
-		}
-		
-		lastInventory = getPlayer().getInventory();
-		lastLocation = getPlayer().getLocation();
-		getPlayer().setLastDamage(0);
-		getPlayer().setNoDamageTicks(0);
-		citizensNPC.setProtected(false);
-		
-		onSpawn();
+		// Ensure we're spawned
+		Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, () -> {
+			if ( !isSpawned() ) {
+				despawn();
+				return;
+			}
+			
+			lastInventory = getPlayer().getInventory();
+			lastLocation = getPlayer().getLocation();
+			getPlayer().setLastDamage(0);
+			getPlayer().setNoDamageTicks(0);
+			citizensNPC.setProtected(false);
+
+			onSpawn();
+		}, Ticks.ZERO);
 		
 		// Apply skin
-		Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, new Runnable() {
-			@Override
-			public void run() {
-				if ( !isSpawned() ) {
-					return;
-				}
-				
-				SkinnableEntity skinnable = (SkinnableEntity) getPlayer();
-				skinnable.setSkinName(setSkinName, true);
+		Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, () -> {
+			if ( !isSpawned() ) {
+				return;
 			}
-		});
+			
+			SkinnableEntity skinnable = (SkinnableEntity) getPlayer();
+			skinnable.setSkinName(setSkinName, true);
+		}, Ticks.ONE);
 		
+		// Default skin is the name of the player.
 		this.setSkinName(name);
 	}
 	
@@ -94,7 +96,6 @@ public class EntityPlayerNPC {
 	public void spawn(Location location, SpawnReason reason) {
 		this.citizensNPC.spawn(location, reason);
 		
-		// Apply armor with delay (sometimes dissappears)
 		Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, new Runnable() {
 			@Override
 			public void run() {
@@ -158,7 +159,13 @@ public class EntityPlayerNPC {
 	public void destroy() {
 		this.citizensNPC.destroy();
 		this.citizensNPC = null;
-		SpawnHuman.despawnNPC(this);
+		
+		// Mark this entity as despawned!
+		if ( SpawnHuman.plugin.isEnabled() ) {
+			Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, ()->{
+				SpawnHuman.despawnNPC(this);
+			}, Ticks.ONE);
+		}
 	}
 	
 	/**
@@ -270,25 +277,31 @@ public class EntityPlayerNPC {
 			PlayerAnimation.START_USE_MAINHAND_ITEM.play(getPlayer());
 			
 			// Shoot arrow with delay
-			Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, new Runnable() {
-				@Override
-				public void run() {
-					Player player = getPlayer();
-					if ( player == null || player.isDead() )
-						return;
-					
-					PlayerAnimation.START_USE_MAINHAND_ITEM.play(player);
-					
-					Location loc = getEyeLocation();
-					float dist = (float) entity.getLocation().distance(player.getLocation());
-					Vector dir = entity.getLocation().add(0, dist/16f, 0).subtract(player.getLocation()).toVector().normalize();
-					Arrow arrow = loc.getWorld().spawnArrow(loc, dir, 1 + (dist/24f), 0.1f);
-					arrow.setShooter(player);
-					
-					getInventory().removeItem(new ItemStack(Material.ARROW, 1));					
-				}
+			Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, () -> {
 				
-			}, 10);
+				// Make sure player is still alive
+				Player player = getPlayer();
+				if ( player == null || player.isDead() )
+					return;
+				
+				// Make sure we're still in arrow animation mode
+				PlayerAnimation.START_USE_MAINHAND_ITEM.play(player);
+				
+				// Spawn arrow
+				Location loc = getEyeLocation();
+				float dist = (float) entity.getLocation().distance(player.getLocation());
+				Vector dir = entity.getLocation().add(0, dist/16f, 0).subtract(player.getLocation()).toVector().normalize();
+				Arrow arrow = loc.getWorld().spawnArrow(loc, dir, 1 + (dist/24f), 0.1f);
+				arrow.setShooter(player);
+				
+				// Remove arrow from inventory
+				getInventory().removeItem(new ItemStack(Material.ARROW, 1));	
+				
+				// Stop animation
+				Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, () -> {
+					PlayerAnimation.STOP_USE_ITEM.play(player);
+				}, Ticks.fromSeconds(0.1));
+			}, Ticks.fromSeconds(0.5));
 		}
 		
 		return true;

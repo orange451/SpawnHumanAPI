@@ -2,6 +2,7 @@ package spawnhuman;
 
 import java.util.List;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
@@ -14,7 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.MetadataValue;
 
 public class SpawnHumanEventListener implements Listener {
-
+	
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onEntityDeath(EntityDeathEvent event) {
 		// Check if its an npc
@@ -38,7 +39,9 @@ public class SpawnHumanEventListener implements Listener {
 		}
 		
 		// Despawn the npc
-		SpawnHuman.despawnNPC(npc);
+		Bukkit.getScheduler().scheduleSyncDelayedTask(SpawnHuman.plugin, ()->{
+			SpawnHuman.despawnNPC(npc);
+		});
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)

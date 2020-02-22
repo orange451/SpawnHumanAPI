@@ -34,22 +34,26 @@ public class SpawnHuman extends JavaPlugin {
 	protected static NPC spawnNPC(EntityPlayerNPC enpc, String name) {
 		final NPC npc = npcs.createNPC(EntityType.PLAYER, name);
 		npc.setProtected(false);
-		
-		Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
-			@Override
-			public void run() {
-				synchronized(currentNPCs) {
-					currentNPCs.add(enpc);
-				}
-			}
-		});
+		synchronized(currentNPCs) {
+			currentNPCs.add(enpc);
+		}
 		
 		return npc;
+	}
+
+	protected static void despawnNPC(EntityPlayerNPC npc) {
+		NPC cit = npc.getNPC();
+		if ( cit != null )
+			npcs.deregister(cit);
+		
+		currentNPCs.remove(npc);
 	}
 	
 	public static EntityPlayerNPC matchNPC(LivingEntity entity) {
 		NPC npc = npcs.getNPC(entity);
-
+		if ( npc == null )
+			return null;
+		
 		for (int i = 0; i < currentNPCs.size(); i++) {
 			if ( i >= currentNPCs.size() )
 				continue;
@@ -68,14 +72,6 @@ public class SpawnHuman extends JavaPlugin {
 	
 	public synchronized static EntityPlayerNPC[] npcs() {
 		return currentNPCs.toArray(new EntityPlayerNPC[currentNPCs.size()]);
-	}
-	
-	protected static void despawnNPC(EntityPlayerNPC npc) {
-		NPC cit = npc.getNPC();
-		if ( cit != null )
-			npcs.deregister(cit);
-		
-		currentNPCs.remove(npc);
 	}
 	
 	@Override
@@ -188,14 +184,14 @@ public class SpawnHuman extends JavaPlugin {
 		ArrayList<EntityPlayerNPC> spawnednpcs = new ArrayList<EntityPlayerNPC>();
 		
 		currentNPCs.forEach((npc)-> {
-			if ( npc.isSpawned() ) {
+			if ( npc.isSpawned() )
 				spawnednpcs.add(npc);
-			}
 		});
 		
-		for (int i = 0; i < spawnednpcs.size(); i++) {
-			spawnednpcs.get(i).destroy();
+		for (EntityPlayerNPC npc : spawnednpcs) {
+			npc.destroy();
 		}
+		
 		npcs.deregisterAll();
 		spawnednpcs.clear();
 	}

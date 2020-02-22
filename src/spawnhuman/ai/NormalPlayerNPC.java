@@ -20,18 +20,19 @@ import net.citizensnpcs.api.ai.StuckAction;
 import net.citizensnpcs.api.event.DespawnReason;
 import net.citizensnpcs.api.npc.NPC;
 import spawnhuman.EntityPlayerNPC;
+import spawnhuman.etc.Ticks;
 
 public class NormalPlayerNPC extends EntityPlayerNPC {
 	protected LivingEntity target;
-	protected int ATTACK_TIMEOUT = 20;
-	protected int RETARGET_TIMEOUT = 20;
-	protected int ROAM_TIMEOUT = 20;
-	protected int RECHECK_TARGET = 20;
-	protected int TARGET_FAILED = 0;
-	protected int NO_NEARBY_PLAYER_TICKS = 0;
+	protected long ATTACK_TIMEOUT = Ticks.ONE_SECOND;
+	protected long RETARGET_TIMEOUT = Ticks.ONE_SECOND;
+	protected long ROAM_TIMEOUT = Ticks.ONE_SECOND;
+	protected long RECHECK_TARGET = Ticks.ONE_SECOND;
+	protected long TARGET_FAILED = 0;
+	protected long NO_NEARBY_PLAYER_TICKS = 0;
 	
 	protected float WALK_SPEED = 1.25f;
-	protected float RUN_SPEED = 2.0f;
+	protected float RUN_SPEED = 1.75f;
 
 	protected static final int TARGET_TIMEOUT_DISTANCE = 34;
 	protected static final int TARGET_MAX_FAIL = 5;
@@ -43,7 +44,7 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 	public NormalPlayerNPC(String name, Location location) {
 		super(name, location);
 		
-		this.getNavigator().getLocalParameters().useNewPathfinder(true);
+		this.getNavigator().getLocalParameters().useNewPathfinder(false);
 		this.getNavigator().getLocalParameters().avoidWater(false);
 		this.getNavigator().getLocalParameters().distanceMargin(3.0);
 		this.getNavigator().getLocalParameters().range(200);
@@ -57,16 +58,15 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 		});
 	}
 	
+	/**
+	 * Set the target for this player. 
+	 * @param target
+	 */
 	public void setTarget( LivingEntity target ) {
-		
-		// Ugly fix for invis players.
-		/*if ( this.TICKS_SINCE_LAST_ATTACK > 20 * 5 ) {
-			this.spawn(this.getLocation());
-		}*/
 		
 		// Set target
 		this.target = target;
-		this.RECHECK_TARGET = 10;
+		this.RECHECK_TARGET = Ticks.fromSeconds(0.5);
 		this.TARGET_FAILED = 0;
 		this.TICKS_SINCE_LAST_ATTACK = 0;
 		this.TICKS = 0;
@@ -97,7 +97,7 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 			
 			// Re-look for target
 			if ( RECHECK_TARGET < 0 ) {
-				RECHECK_TARGET = 20;
+				RECHECK_TARGET = Ticks.ONE_SECOND;
 				if ( !this.canSee(target.getEyeLocation()) ) {
 					TARGET_FAILED++;
 				} else {
@@ -134,7 +134,7 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 				
 				// Move to target
 				if ( RETARGET_TIMEOUT < 0 ) {
-					RETARGET_TIMEOUT = 10;
+					RETARGET_TIMEOUT = Ticks.HALF_SECOND;
 					
 					if ( !canSeeTarget || dist >= MINIMUM_TARGET_DISTANCE ) {
 						this.IDLE_TICKS = 0; // Not idle...
@@ -143,7 +143,7 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 				}
 				
 				// Handle running
-				if ( dist > 7 && !this.getPlayer().isDead() && getNavigator().isNavigating() ) {
+				if ( dist > 4 && !this.getPlayer().isDead() && getNavigator().isNavigating() ) {
 					getPlayer().setSprinting(true);
 				}
 				
@@ -153,10 +153,10 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 				
 				// Handle attacking
 				if ( ATTACK_TIMEOUT < 0 ) {
-					ATTACK_TIMEOUT = 20 + (int)(Math.random()*5);
+					ATTACK_TIMEOUT = Ticks.ONE_SECOND + (int)(Math.random()*Ticks.HALF_SECOND);
 					if ( attack(target) ) {
 						if ( this.isHoldingRangedWeapon() ) {
-							ATTACK_TIMEOUT += 20;
+							ATTACK_TIMEOUT += Ticks.ONE_SECOND;
 						}
 					}
 				}
@@ -166,7 +166,7 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 			
 			// Walk around
 			if ( ROAM_TIMEOUT < 0 ) {
-				ROAM_TIMEOUT = 80 + (int)(Math.random()*120);
+				ROAM_TIMEOUT = Ticks.fromSeconds(4) + (int)(Math.random()*Ticks.fromSeconds(6));
 				int tries = 0;
 				
 				// Despawn if no players nearby
@@ -240,7 +240,7 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 		if ( !hostileIfAttacked )
 			return;
 		
-		if ( TICKS_SINCE_LAST_ATTACK > 40 || target == null ) {
+		if ( TICKS_SINCE_LAST_ATTACK > Ticks.TWO_SECONDS || target == null ) {
 			if ( this.canSee(damager.getEyeLocation()) ) {
 				setTarget(damager);
 			} else {
@@ -249,6 +249,11 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 		}
 	}
 	
+	/**
+	 * Returns a list of living nearby entities. Sorts based on distance (ASCENDING).
+	 * @param r
+	 * @return
+	 */
 	protected List<LivingEntity> getNearbyLivingEntities(float r) {
 		List<LivingEntity> ret = new ArrayList<LivingEntity>();
 		List<Entity> nearby = getPlayer().getNearbyEntities(r, r, r);
@@ -298,6 +303,10 @@ public class NormalPlayerNPC extends EntityPlayerNPC {
 		return ret;
 	}
 	
+	/**
+	 * Finds the closest REAL player (based on which players are currently online).
+	 * @return
+	 */
 	protected Player getNearestPlayer() {
 		Collection<? extends Player> players = Bukkit.getOnlinePlayers();
 		Player[] pl = players.toArray(new Player[players.size()]);
